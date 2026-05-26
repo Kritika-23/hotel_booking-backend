@@ -7,6 +7,7 @@ const adminEmails = (process.env.ADMIN_EMAILS || "")
   .split(",")
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
+const fallbackAdminEmails = ["kritika276591@gmail.com"];
 
 const getClerkRole = (clerkUser, email) => {
   const metadataRole =
@@ -18,7 +19,10 @@ const getClerkRole = (clerkUser, email) => {
     return metadataRole;
   }
 
-  if (email && adminEmails.includes(email.toLowerCase())) {
+  if (
+    email &&
+    [...adminEmails, ...fallbackAdminEmails].includes(email.toLowerCase())
+  ) {
     return "admin";
   }
 
