@@ -7,7 +7,7 @@ dotenv.config();
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-console.log("STRIPE KEY:", process.env.STRIPE_SECRET_KEY);
+const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 
 export const makePayment = async (req, res) => {
   try {
@@ -37,9 +37,9 @@ export const makePayment = async (req, res) => {
 
       mode: "payment",
 
-      success_url: `http://localhost:5173/success?bookingId=${bookingId}`,
+      success_url: `${clientUrl}/success?bookingId=${bookingId}`,
 
-      cancel_url: "http://localhost:5173/cancel",
+      cancel_url: `${clientUrl}/cancel`,
     });
 
     res.json({ url: session.url });

@@ -1,4 +1,6 @@
 export const invoiceTemplate = (booking) => {
+  const serverUrl = process.env.SERVER_URL || "http://localhost:4000";
+
   return `
   <html>
   <head>
@@ -111,7 +113,7 @@ export const invoiceTemplate = (booking) => {
     <!-- IMAGE -->
     ${
       booking.hotel?.images?.[0]
-        ? `<img class="hotelImg" src="http://localhost:4000${booking.hotel.images[0]}" />`
+        ? `<img class="hotelImg" src="${serverUrl}${booking.hotel.images[0]}" />`
         : ""
     }
 

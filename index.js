@@ -95,6 +95,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -121,10 +122,35 @@ connectDB();
 // FIX: __dirname setup (IMPORTANT for images)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const uploadDirs = [
+  path.join(process.cwd(), "uploads"),
+  path.join(__dirname, "uploads"),
+];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
+uploadDirs.forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "https://hotel-booking-app-mnxk-24hu1z59a-kritika-23s-projects.vercel.app"],
+  origin: (origin, callback) => {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      origin.endsWith(".vercel.app")
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true
 }));
 
@@ -157,7 +183,9 @@ app.get("/protected", (req, res) => {
 // ========================
 // STATIC FILES (FIXED)
 // ========================
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+uploadDirs.forEach((dir) => {
+  app.use("/uploads", express.static(dir));
+});
 
 // ========================
 // API ROUTES

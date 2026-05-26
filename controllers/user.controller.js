@@ -320,8 +320,7 @@ export const uploadProfile = async (req, res) => {
       });
     }
 
-    // const imageUrl = `/uploads/${req.file.filename}`;
-const imageUrl = `http://localhost:4000/uploads/${req.file.filename}`;
+    const imageUrl = `/uploads/${req.file.filename}`;
     const updatedUser = await User.findByIdAndUpdate(
       user._id,   // ✅ ONLY THIS
       { profileImage: imageUrl },
