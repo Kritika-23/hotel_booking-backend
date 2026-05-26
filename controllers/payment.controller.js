@@ -2,10 +2,12 @@ import Stripe from "stripe";
 import Booking from "../models/booking.model.js";
 import transporter from "../config/nodemailer.js";
 import { generateInvoicePDF } from "../utils/generateInvoice.js";
-
+import dotenv from "dotenv";
+dotenv.config();
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+console.log("STRIPE KEY:", process.env.STRIPE_SECRET_KEY);
 
 export const makePayment = async (req, res) => {
   try {
@@ -13,7 +15,7 @@ export const makePayment = async (req, res) => {
     const { roomName, price, bookingId } = req.body;
 
     console.log(req.body);
-
+  
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
 
