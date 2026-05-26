@@ -46,8 +46,6 @@ roomRouter.get(
 // GET SINGLE ROOM
 roomRouter.get(
   "/single/:id",
-  isAuthenticated,
-  isOwner,
   getSingleRoom
 );
 
