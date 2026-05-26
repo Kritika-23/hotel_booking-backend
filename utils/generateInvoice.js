@@ -4,6 +4,7 @@ import { invoiceTemplate } from "./invoiceTemplate.js";
 export const generateInvoicePDF = async (booking) => {
   const browser = await puppeteer.launch({
     headless: "new",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
   const page = await browser.newPage();

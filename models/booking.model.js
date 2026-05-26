@@ -50,6 +50,10 @@ const bookingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    invoiceEmailSent: {
+      type: Boolean,
+      default: false,
+    },
     expiresAt: {
       type: Date,
     },

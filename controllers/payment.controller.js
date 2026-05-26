@@ -3,8 +3,8 @@ import Booking from "../models/booking.model.js";
 import transporter from "../config/nodemailer.js";
 import { generateInvoicePDF } from "../utils/generateInvoice.js";
 import dotenv from "dotenv";
-dotenv.config();
 
+dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const liveClientUrl = "https://hotel-booking-app-mnxk.vercel.app";
@@ -20,58 +20,105 @@ const clientUrl = (
     : rawClientUrl
 ).replace(/\/+$/, "");
 
+const sendInvoiceEmail = async (booking) => {
+  if (!booking.user?.email) {
+    throw new Error("User email not found for this booking");
+  }
+
+  const pdfBuffer = await generateInvoicePDF(booking);
+
+  await transporter.sendMail({
+    from: process.env.SMTP_USER,
+    to: booking.user.email,
+    subject: "Invoice - Booking Confirmed | GlamourStays",
+    html: `
+      <div style="font-family:Arial;padding:20px;">
+        <h1>GlamourStays Invoice</h1>
+        <p><strong>Name:</strong> ${booking.user.name || "Guest"}</p>
+        <p><strong>Email:</strong> ${booking.user.email}</p>
+        <p><strong>Booking ID:</strong> ${booking._id}</p>
+        <p><strong>Total:</strong> Rs. ${booking.totalPrice}</p>
+        <h3>Status: PAID</h3>
+      </div>
+    `,
+    attachments: [
+      {
+        filename: `invoice-${booking._id}.pdf`,
+        content: pdfBuffer,
+      },
+    ],
+  });
+
+  booking.invoiceEmailSent = true;
+  await booking.save();
+};
+
 export const makePayment = async (req, res) => {
   try {
-
     const { roomName, price, bookingId } = req.body;
 
     console.log(req.body);
-  
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-
       line_items: [
         {
           price_data: {
             currency: "inr",
-
             product_data: {
               name: roomName,
             },
-
             unit_amount: price * 100,
           },
-
           quantity: 1,
         },
       ],
-
       mode: "payment",
-
-      success_url: `${clientUrl}/success?bookingId=${bookingId}`,
-
+      metadata: {
+        bookingId,
+      },
+      success_url: `${clientUrl}/success?session_id={CHECKOUT_SESSION_ID}&bookingId=${bookingId}`,
       cancel_url: `${clientUrl}/cancel`,
     });
+
+    console.log("Stripe session created:", session);
+
+    if (!session || !session.url) {
+      console.error("Stripe session missing URL", session);
+      return res.status(500).json({ message: "Failed to create Stripe session" });
+    }
 
     res.json({ url: session.url });
 
   } catch (error) {
-
     res.status(500).json({
       message: error.message,
     });
-
   }
 };
 
 export const verifyPayment = async (req, res) => {
   try {
-    const { bookingId } = req.body;
+    const { bookingId, sessionId } = req.body;
 
     console.log("REQ BODY:", req.body);
 
-    // 1. Get booking
-    const booking = await Booking.findById(bookingId)
+    let verifiedBookingId = bookingId;
+
+    if (sessionId) {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status !== "paid") {
+        return res.json({
+          success: false,
+          message: "Payment not completed",
+        });
+      }
+
+      verifiedBookingId = session.metadata?.bookingId || verifiedBookingId;
+    }
+
+    const booking = await Booking.findById(verifiedBookingId)
       .populate("user")
       .populate("hotel")
       .populate("room");
@@ -83,51 +130,25 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    // 2. Prevent double payment
-    if (booking.isPaid) {
+    if (booking.isPaid && booking.invoiceEmailSent) {
       return res.json({
         success: true,
-        message: "Already paid",
+        message: "Already paid and invoice already sent",
       });
     }
 
-    // 3. Update booking
-    booking.isPaid = true;
-    booking.status = "confirmed";
-    await booking.save();
+    if (!booking.isPaid) {
+      booking.isPaid = true;
+      booking.status = "confirmed";
+      await booking.save();
 
-    console.log("BOOKING CONFIRMED:", booking._id);
+      console.log("BOOKING CONFIRMED:", booking._id);
+    }
 
-    // 4. Generate invoice PDF
-    const pdfBuffer = await generateInvoicePDF(booking);
-
-    // 5. Send SINGLE email with attachment
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: booking.user.email,
-
-      subject: "Invoice - Booking Confirmed | GlamourStays",
-
-      html: `
-        <div style="font-family:Arial;padding:20px;">
-          <h1>GlamourStays Invoice</h1>
-          <p><strong>Name:</strong> ${booking.user.name || "Guest"}</p>
-          <p><strong>Email:</strong> ${booking.user.email}</p>
-          <p><strong>Booking ID:</strong> ${booking._id}</p>
-          <p><strong>Total:</strong> ₹${booking.totalPrice}</p>
-          <h3>Status: PAID ✅</h3>
-        </div>
-      `,
-
-      attachments: [
-        {
-          filename: `invoice-${booking._id}.pdf`,
-          content: pdfBuffer,
-        },
-      ],
-    });
-
-    console.log("📧 Invoice Email Sent");
+    if (!booking.invoiceEmailSent) {
+      await sendInvoiceEmail(booking);
+      console.log("Invoice Email Sent");
+    }
 
     return res.json({
       success: true,
