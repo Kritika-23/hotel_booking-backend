@@ -124,7 +124,7 @@ const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174"],
+  origin: ["http://localhost:5173", "http://localhost:5174", "https://hotel-booking-app-mnxk-24hu1z59a-kritika-23s-projects.vercel.app"],
   credentials: true
 }));
 
