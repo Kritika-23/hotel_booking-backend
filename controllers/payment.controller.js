@@ -7,7 +7,9 @@ dotenv.config();
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+const clientUrl = (
+  process.env.CLIENT_URL || "https://hotel-booking-app-mnxk.vercel.app"
+).replace(/\/+$/, "");
 
 export const makePayment = async (req, res) => {
   try {
