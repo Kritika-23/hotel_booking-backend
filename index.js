@@ -16,7 +16,7 @@
 // import bookingRouter from "./routes/booking.routes.js";
 // import searchRouter from "./routes/search.routes.js";
 // dotenv.config();
-// // console.log("SIGN SECRET:", process.env.JWT_SECRET);
+// // console.log("SIGN SECRET:", env.JWT_SECRET);
 // const app = express();
 
 // // Database connection
@@ -84,7 +84,7 @@
 // app.use("/api/search", searchRouter);
 
 // // Port configuration
-// const PORT = process.env.PORT || 4000;
+// const PORT = env.PORT || 4000;
 
 // // ✅ Fix: Use template literals correctly inside console.log
 // app.listen(PORT, () => {
@@ -169,7 +169,7 @@ app.use("/api/bookings", bookingRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/payment", paymentRouter);
 // PORT
-const PORT = process.env.PORT || 4000;
+const PORT = env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
