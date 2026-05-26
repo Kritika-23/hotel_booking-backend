@@ -21,13 +21,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
+  host: process.env.SMTP_HOST,
   port: 587,
   secure: false,
   family: 4, // 🔥 IMPORTANT FIX
   auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASSWORD,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
   },
 });
 

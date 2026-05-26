@@ -5,7 +5,7 @@ import { generateInvoicePDF } from "../utils/generateInvoice.js";
 
 
 
-const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const makePayment = async (req, res) => {
   try {
@@ -90,7 +90,7 @@ export const verifyPayment = async (req, res) => {
 
     // 5. Send SINGLE email with attachment
     await transporter.sendMail({
-      from: env.SMTP_USER,
+      from: process.env.SMTP_USER,
       to: booking.user.email,
 
       subject: "Invoice - Booking Confirmed | GlamourStays",
