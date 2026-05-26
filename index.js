@@ -111,6 +111,7 @@ import roomRouter from "./routes/room.routes.js";
 import bookingRouter from "./routes/booking.routes.js";
 import searchRouter from "./routes/search.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
+import { stripeWebhook } from "./controllers/payment.controller.js";
 
 dotenv.config();
 
@@ -153,6 +154,12 @@ app.use(cors({
   },
   credentials: true
 }));
+
+app.post(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhook
+);
 
 app.use(express.json());
 app.use(cookieParser());

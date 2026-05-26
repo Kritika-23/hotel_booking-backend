@@ -53,6 +53,62 @@ const sendInvoiceEmail = async (booking) => {
   await booking.save();
 };
 
+export const stripeWebhook = async (req, res) => {
+  const signature = req.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (error) {
+    console.error("Stripe webhook signature error:", error.message);
+    return res.status(400).send(`Webhook Error: ${error.message}`);
+  }
+
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const bookingId = session.metadata?.bookingId;
+
+      if (!bookingId) {
+        return res.json({ received: true });
+      }
+
+      const booking = await Booking.findById(bookingId)
+        .populate("user")
+        .populate("hotel")
+        .populate("room");
+
+      if (!booking) {
+        return res.json({ received: true });
+      }
+
+      if (!booking.isPaid) {
+        booking.isPaid = true;
+        booking.status = "confirmed";
+        await booking.save();
+      }
+
+      if (!booking.invoiceEmailSent) {
+        await sendInvoiceEmail(booking);
+      }
+    }
+
+    return res.json({ received: true });
+
+  } catch (error) {
+    console.error("Stripe webhook handler error:", error);
+    return res.status(500).json({
+      received: false,
+      message: error.message,
+    });
+  }
+};
+
 export const makePayment = async (req, res) => {
   try {
     const { roomName, price, bookingId } = req.body;
