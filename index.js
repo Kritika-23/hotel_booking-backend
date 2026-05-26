@@ -158,6 +158,15 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(clerkMiddleware());
 
+// Normalize cached/old client URLs like //uploads/file.jpg to /uploads/file.jpg.
+app.use((req, res, next) => {
+  if (req.url.startsWith("//")) {
+    req.url = req.url.replace(/^\/+/, "/");
+  }
+
+  next();
+});
+
 // TEST ROUTE
 app.get("/", (req, res) => {
   res.send("Hello World from server");
