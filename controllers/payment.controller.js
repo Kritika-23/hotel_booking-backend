@@ -7,8 +7,17 @@ dotenv.config();
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const liveClientUrl = "https://hotel-booking-app-mnxk.vercel.app";
+const rawClientUrl = process.env.CLIENT_URL || liveClientUrl;
+const isRailway =
+  process.env.RAILWAY_ENVIRONMENT ||
+  process.env.RAILWAY_PROJECT_ID ||
+  process.env.RAILWAY_SERVICE_ID ||
+  process.env.RAILWAY_PUBLIC_DOMAIN;
 const clientUrl = (
-  process.env.CLIENT_URL || "https://hotel-booking-app-mnxk.vercel.app"
+  isRailway && rawClientUrl.includes("localhost")
+    ? liveClientUrl
+    : rawClientUrl
 ).replace(/\/+$/, "");
 
 export const makePayment = async (req, res) => {
