@@ -54,6 +54,13 @@ const bookingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    invoiceEmailError: {
+      type: String,
+      default: "",
+    },
+    invoiceEmailLastAttemptAt: {
+      type: Date,
+    },
     expiresAt: {
       type: Date,
     },

@@ -1,30 +1,38 @@
 export const invoiceTemplate = (booking) => {
-  const serverUrl = process.env.SERVER_URL || "http://localhost:4000";
+  const serverUrl = (
+    process.env.SERVER_URL ||
+    (process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : "http://localhost:4000")
+  ).replace(/\/+$/, "");
+  const hotelImage = booking.hotel?.images?.[0];
+  const hotelImageUrl = hotelImage
+    ? hotelImage.startsWith("http")
+      ? hotelImage
+      : `${serverUrl}${hotelImage}`
+    : "";
 
   return `
   <html>
   <head>
     <style>
       body {
-        font-family: Arial;
+        font-family: Arial, sans-serif;
         background: #fff;
         padding: 40px;
         color: #111;
       }
-
       .header {
         display: flex;
         justify-content: space-between;
         border-bottom: 2px solid #eee;
         padding-bottom: 20px;
       }
-
       .logoBox {
         display: flex;
         gap: 12px;
         align-items: center;
       }
-
       .logo {
         width: 55px;
         height: 55px;
@@ -37,22 +45,18 @@ export const invoiceTemplate = (booking) => {
         font-size:26px;
         font-weight:bold;
       }
-
       h1 {
         margin: 0;
         font-size: 26px;
       }
-
       .tag {
         font-size: 10px;
         letter-spacing: 3px;
         color: gray;
       }
-
       .invoiceTitle {
         text-align: right;
       }
-
       .hotelImg {
         width: 100%;
         height: 280px;
@@ -60,18 +64,15 @@ export const invoiceTemplate = (booking) => {
         border-radius: 20px;
         margin-top: 20px;
       }
-
       .grid {
         display: flex;
         justify-content: space-between;
         margin-top: 30px;
       }
-
       .box {
         width: 45%;
         line-height: 1.8;
       }
-
       .total {
         margin-top: 30px;
         padding: 20px;
@@ -80,21 +81,15 @@ export const invoiceTemplate = (booking) => {
         justify-content: space-between;
         border-radius: 16px;
       }
-
       .footer {
         text-align: center;
         margin-top: 40px;
         color: gray;
       }
-
     </style>
   </head>
-
   <body>
-
-    <!-- HEADER -->
     <div class="header">
-
       <div class="logoBox">
         <div class="logo">G</div>
         <div>
@@ -102,56 +97,45 @@ export const invoiceTemplate = (booking) => {
           <div class="tag">Luxury Hotel Booking</div>
         </div>
       </div>
-
       <div class="invoiceTitle">
         <h2>INVOICE</h2>
         <p>${new Date().toLocaleDateString()}</p>
       </div>
-
     </div>
 
-    <!-- IMAGE -->
     ${
-      booking.hotel?.images?.[0]
-        ? `<img class="hotelImg" src="${serverUrl}${booking.hotel.images[0]}" />`
+      hotelImageUrl
+        ? `<img class="hotelImg" src="${hotelImageUrl}" />`
         : ""
     }
 
-    <!-- DETAILS -->
-    <!-- DETAILS -->
-<div class="grid">
+    <div class="grid">
+      <div class="box">
+        <p><b>User Name:</b> ${
+          booking.user?.name?.trim() ||
+          booking.user?.email?.split("@")[0] ||
+          "User"
+        }</p>
+        <p><b>Email:</b> ${booking.user?.email || "N/A"}</p>
+        <p><b>Hotel:</b> ${booking.hotel?.hotelName || "N/A"}</p>
+        <p><b>Room:</b> ${booking.room?.roomType || "N/A"}</p>
+        <p><b>Guests:</b> ${booking.persons}</p>
+      </div>
+      <div class="box" style="text-align:right">
+        <p><b>Check-in:</b> ${new Date(booking.checkIn).toLocaleDateString()}</p>
+        <p><b>Check-out:</b> ${new Date(booking.checkOut).toLocaleDateString()}</p>
+        <p><b>Status:</b> ${booking.status}</p>
+      </div>
+    </div>
 
-<div class="box">
-
-  <p><b>User Name:</b> ${booking.user?.name?.trim() || booking.user?.email?.split("@")[0] || "User"}</p>
-
-  <p><b>Email:</b> ${booking.user?.email || "N/A"}</p>
-
-  <p><b>Hotel:</b> ${booking.hotel?.hotelName}</p>
-  <p><b>Room:</b> ${booking.room?.roomType}</p>
-  <p><b>Guests:</b> ${booking.persons}</p>
-
-</div>
-
-  <div class="box" style="text-align:right">
-    <p><b>Check-in:</b> ${new Date(booking.checkIn).toLocaleDateString()}</p>
-    <p><b>Check-out:</b> ${new Date(booking.checkOut).toLocaleDateString()}</p>
-    <p><b>Status:</b> ${booking.status}</p>
-  </div>
-
-</div>
-
-    <!-- TOTAL -->
     <div class="total">
       <h2>Total Amount</h2>
-      <h1 style="color:#8458b3">₹${booking.totalPrice}</h1>
+      <h1 style="color:#8458b3">Rs. ${booking.totalPrice}</h1>
     </div>
 
-    <!-- FOOTER -->
     <div class="footer">
-      <p>Thank you for booking with GlamourStays ✨</p>
+      <p>Thank you for booking with GlamourStays</p>
     </div>
-
   </body>
   </html>
   `;

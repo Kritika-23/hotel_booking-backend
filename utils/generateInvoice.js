@@ -12,7 +12,8 @@ export const generateInvoicePDF = async (booking) => {
   const html = invoiceTemplate(booking);
 
   await page.setContent(html, {
-    waitUntil: "networkidle0",
+    waitUntil: "domcontentloaded",
+    timeout: 30000,
   });
 
   const pdfBuffer = await page.pdf({

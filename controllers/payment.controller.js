@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import Booking from "../models/booking.model.js";
 import transporter from "../config/nodemailer.js";
 import { generateInvoicePDF } from "../utils/generateInvoice.js";
+import { invoiceTemplate } from "../utils/invoiceTemplate.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -25,32 +26,49 @@ const sendInvoiceEmail = async (booking) => {
     throw new Error("User email not found for this booking");
   }
 
-  const pdfBuffer = await generateInvoicePDF(booking);
+  booking.invoiceEmailLastAttemptAt = new Date();
+  await booking.save();
+
+  let pdfBuffer = null;
+
+  try {
+    pdfBuffer = await generateInvoicePDF(booking);
+  } catch (error) {
+    console.error("Invoice PDF generation failed:", error.message);
+  }
 
   await transporter.sendMail({
     from: process.env.SMTP_USER,
     to: booking.user.email,
     subject: "Invoice - Booking Confirmed | GlamourStays",
-    html: `
-      <div style="font-family:Arial;padding:20px;">
-        <h1>GlamourStays Invoice</h1>
-        <p><strong>Name:</strong> ${booking.user.name || "Guest"}</p>
-        <p><strong>Email:</strong> ${booking.user.email}</p>
-        <p><strong>Booking ID:</strong> ${booking._id}</p>
-        <p><strong>Total:</strong> Rs. ${booking.totalPrice}</p>
-        <h3>Status: PAID</h3>
-      </div>
-    `,
-    attachments: [
-      {
-        filename: `invoice-${booking._id}.pdf`,
-        content: pdfBuffer,
-      },
-    ],
+    html: invoiceTemplate(booking),
+    attachments: pdfBuffer
+      ? [
+          {
+            filename: `invoice-${booking._id}.pdf`,
+            content: pdfBuffer,
+          },
+        ]
+      : [],
   });
 
   booking.invoiceEmailSent = true;
+  booking.invoiceEmailError = "";
   await booking.save();
+};
+
+const trySendInvoiceEmail = async (booking) => {
+  try {
+    await sendInvoiceEmail(booking);
+    console.log("Invoice Email Sent");
+    return true;
+  } catch (error) {
+    console.error("Invoice Email Failed:", error.message);
+    booking.invoiceEmailError = error.message;
+    booking.invoiceEmailLastAttemptAt = new Date();
+    await booking.save();
+    return false;
+  }
 };
 
 export const stripeWebhook = async (req, res) => {
@@ -94,7 +112,7 @@ export const stripeWebhook = async (req, res) => {
       }
 
       if (!booking.invoiceEmailSent) {
-        await sendInvoiceEmail(booking);
+        await trySendInvoiceEmail(booking);
       }
     }
 
@@ -201,14 +219,16 @@ export const verifyPayment = async (req, res) => {
       console.log("BOOKING CONFIRMED:", booking._id);
     }
 
-    if (!booking.invoiceEmailSent) {
-      await sendInvoiceEmail(booking);
-      console.log("Invoice Email Sent");
-    }
+    const invoiceSent = booking.invoiceEmailSent
+      ? true
+      : await trySendInvoiceEmail(booking);
 
     return res.json({
       success: true,
-      message: "Payment verified successfully",
+      invoiceSent,
+      message: invoiceSent
+        ? "Payment verified successfully"
+        : "Payment verified, invoice email will be retried",
     });
 
   } catch (error) {
